@@ -136,7 +136,3 @@ sharper this time: the AI's output is exactly as good as the spec you give
 it, and I could only catch what was missing because I'd already built the
 real thing by hand first.
 
-## Real diff
-
-See [`ai-version/diff-server.txt`](./ai-version/diff-server.txt) for the full
-`git diff --no-index server.js ai-version/server.js` output.
