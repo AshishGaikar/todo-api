@@ -72,11 +72,7 @@ run of this server, not hand-typed.
 
 ## Swagger screenshot
 
-> **TODO before you submit:** run `npm start`, open `http://localhost:3000/docs`
-> in your browser, click "Try it out" on a couple of endpoints, and paste a
-> screenshot here. I can't open a browser from this environment to capture
-> one for you, but the page is generated automatically from `openapi.json` —
-> every endpoint in the table above will be listed there.
+![Swagger Screenshot](URL to Image)
 
 ## The mortality experiment
 
@@ -94,8 +90,7 @@ above. My own Stages 0–6 code was untouched while doing this.
 
 **My prompt:** see [`ai-version/PROMPT.md`](./ai-version/PROMPT.md).
 
-I ran the AI's server and fired real requests at it (see the actual output in
-[`ai-version/`](./ai-version) if you want to reproduce it):
+I ran the AI's server and fired real requests at it:
 
 **1. What did the AI do better — and do I understand it well enough to explain it?**
 Nothing structurally better — the routes and general shape match mine. Its
