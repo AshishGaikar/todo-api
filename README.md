@@ -72,7 +72,7 @@ run of this server, not hand-typed.
 
 ## Swagger screenshot
 
-![Swagger Screenshot](URL to Image)
+![Swagger Screenshot](localhost_3000_docs_.png)
 
 ## The mortality experiment
 
