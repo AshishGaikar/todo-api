@@ -156,7 +156,7 @@ data, with no syncing step between them.
 
 **Tasks table, viewed in DB Browser:**
 
-![Tasks table in DB Browser](./screenshots/tasks-table.png)
+![Tasks table in DB Browser](Table.png)
 
 **Example query run in the "Execute SQL" tab:**
 
@@ -164,7 +164,7 @@ data, with no syncing step between them.
 SELECT COUNT(*) FROM tasks;
 ```
 
-![COUNT query result](./screenshots/count-query.png)
+![COUNT query result](Query.png)
 
 Returned `3`, confirming the seed only ran once and didn't multiply across
 restarts.
