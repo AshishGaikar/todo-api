@@ -1,4 +1,6 @@
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const openapiSpec = require("./openapi.json");
 const app = express();
 const PORT = 3000;
 
@@ -36,7 +38,6 @@ app.get("/tasks/:id", (req, res) => {
 });
 
 app.post("/tasks", (req, res) => {
-     console.log("BODY RECEIVED:", req.body); 
   const { title } = req.body || {};
   if (!title || typeof title !== "string" || title.trim() === "") {
     return res.status(400).json({ error: "title is required and must be a non-empty string" });
@@ -81,4 +82,9 @@ app.delete("/tasks/:id", (req, res) => {
   res.status(204).send();
 });
 
-app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
+app.listen(PORT, () => {
+  console.log(`Listening on http://localhost:${PORT}`);
+  console.log(`Swagger docs at http://localhost:${PORT}/docs`);
+});
