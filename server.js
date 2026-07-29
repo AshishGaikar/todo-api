@@ -3,15 +3,13 @@ const swaggerUi = require("swagger-ui-express");
 const openapiSpec = require("./openapi.json");
 const app = express();
 const PORT = 3000;
-
+require("./db");
 app.use(express.json());
+const db = require("./db");
 
-let tasks = [
-  { id: 1, title: "Buy milk", done: false },
-  { id: 2, title: "Write README", done: false },
-  { id: 3, title: "Walk the dog", done: true },
-];
-let nextId = 4;
+function serialize(task) {
+  return { ...task, done: !!task.done };
+}
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -26,15 +24,16 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/tasks", (req, res) => {
-  res.status(200).json(tasks);
+  const tasks = db.prepare("SELECT * FROM tasks").all();
+  res.status(200).json(tasks.map(serialize));
 });
 
 app.get("/tasks/:id", (req, res) => {
-  const task = tasks.find((t) => t.id === parseInt(req.params.id));
+  const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id);
   if (!task) {
     return res.status(404).json({ error: `Task ${req.params.id} not found` });
   }
-  res.status(200).json(task);
+  res.status(200).json(serialize(task));
 });
 
 app.post("/tasks", (req, res) => {
