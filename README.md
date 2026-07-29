@@ -1,11 +1,21 @@
 # Task API
 
-A small in-memory CRUD API for managing a to-do list, built for the FlyRank
-Internship — Backend Track, Week 2, Assignment A1.
+A CRUD API for managing a to-do list, built for the FlyRank Internship —
+Backend Track.
 
-You can create, read, update and delete tasks. Data lives in a plain
-JavaScript array in memory — it resets whenever the server restarts (no
-database yet, that's Week 3).
+- **Week 2 (Assignment A1):** built the API with an in-memory JavaScript
+  array as storage.
+- **Week 3 (Assignment A2 — this update):** swapped the storage layer to a
+  real **SQLite** database. The API itself — routes, request/response
+  shapes, status codes — is unchanged; only *where the data lives* changed,
+  from a variable in memory to a file on disk (`tasks.db`).
+
+You can create, read, update and delete tasks, and data now **survives a
+server restart**.
+
+> This project continues from my Assignment 1 repository. Assignment 1 is
+> graded as-is on `main` (unchanged). All Assignment 2 (Week 3 SQLite) work
+> lives on the `week3-sqlite` branch.
 
 ## How to install & run
 
@@ -18,6 +28,10 @@ The server starts on **http://localhost:3000**. Swagger UI (interactive docs)
 is at **http://localhost:3000/docs**.
 
 Requires Node.js 18+.
+
+On first run, `tasks.db` is created automatically in the project root, along
+with the `tasks` table and three seed tasks — no manual setup needed. The
+database file is git-ignored, so every fresh clone starts clean.
 
 ## Endpoints
 
@@ -33,6 +47,9 @@ Requires Node.js 18+.
 | GET    | `/stats`      | `{ total, done, open }` counts (extra)   | 200     | —                  |
 | POST   | `/reset`      | Restore the 3 seed tasks (extra)         | 200     | —                  |
 | GET    | `/docs`       | Swagger UI                               | 200     | —                  |
+
+All of the above are backed by SQLite as of Week 3 — same paths, same
+payloads, same status codes as Week 2.
 
 ## Example: curl output
 
@@ -68,66 +85,126 @@ Content-Type: application/json; charset=utf-8
 ```
 
 All status codes above (`201`, `400`, `200`, `204`) were captured from a real
-run of this server, not hand-typed.
+run of this server, not hand-typed. This same sequence was re-run against the
+SQLite-backed version in Week 3 and produced identical output — proof that
+the storage swap didn't change the API's behavior.
 
 ## Swagger screenshot
 
 ![Swagger Screenshot](localhost_3000_docs_.png)
 
-## The mortality experiment
+---
 
-Create a few tasks, restart the server (`Ctrl+C` then `npm start` again), then
-`GET /tasks`. The new tasks are gone — you're back to the 3 seed tasks. That's
-because everything lives in a JavaScript array in the server's memory; nothing
-is written to disk. This is exactly the gap Week 3 (databases) exists to
-close.
+## Storage: SQLite (Week 3)
 
-## Stage 7 — AI vs me
+### Why SQLite
 
-The full prompt I gave the AI, and its full generated code, are in
-[`ai-version/`](./ai-version) — kept separate from my own hand-built code
-above. My own Stages 0–6 code was untouched while doing this.
+SQLite was chosen because it's a **single file** with **zero setup** — no
+separate database server to install, configure, or run. It's a natural next
+step up from the in-memory array: same simplicity, but data now persists to
+disk instead of living only in the running process's memory.
 
-**My prompt:** see [`ai-version/PROMPT.md`](./ai-version/PROMPT.md).
+### Where the database lives
 
-I ran the AI's server and fired real requests at it:
+- The database is `tasks.db`, created automatically the first time the
+  server runs.
+- It's **git-ignored**, so each fresh clone starts clean — the app creates
+  the file, creates the `tasks` table, and seeds three example tasks
+  automatically.
 
-**1. What did the AI do better — and do I understand it well enough to explain it?**
-Nothing structurally better — the routes and general shape match mine. Its
-code is slightly more compact because it skips the extra validation branches
-I wrote. I understand it completely; it's a simpler subset of what I built.
+### Database schema
 
-**2. What did it get wrong or quietly ignore from my prompt?**
-- No `/` and no `/health` endpoint at all — I never explicitly asked for them
-  in the rematch prompt, but I described "API info" nowhere either, so it just
-  didn't build them. `GET /` and `GET /health` both return Express's default
-  404 HTML page instead of JSON.
-- `POST /tasks` accepts a whitespace-only title (`"   "`) as valid and returns
-  `201` — it only checks that `title` is *truthy*, not that it's meaningfully
-  non-empty. My version trims and rejects that with `400`.
-- `PUT /tasks/:id` does **no validation at all**. An empty body `{}` silently
-  returns `200` with the task unchanged (should arguably be `400`, since
-  nothing was provided to update), and sending `"done":"true"` (a string, not
-  a boolean) is accepted and stored as a string — future `if (task.done)`
-  checks elsewhere in a bigger app would misbehave on that.
-- `DELETE /tasks/:id` returns **`200`** with the deleted task in the body,
-  not **`204`** with an empty body as I required. Minor but a real spec
-  mismatch — my prompt said "use sensible HTTP status codes" but never spelled
-  out 204 for delete, so the AI picked its own convention.
+One table, `tasks`:
 
-**3. What did my prompt forget to specify — and what did the AI silently decide for you?**
-I never mentioned `/` or `/health`, never said what counts as an "empty"
-title beyond "missing," never said PUT should validate its body at all, and
-never named the exact status code for DELETE. The AI filled every one of
-those gaps with a reasonable-sounding but different default than mine. That's
-the whole lesson: **every unspecified detail became a coin flip**, and the
-coin didn't always land where I needed it to.
+| Column  | Type    | Notes                          |
+|---------|---------|----------------------------------|
+| `id`    | INTEGER | Primary key, auto-assigned       |
+| `title` | TEXT    | Required, non-empty               |
+| `done`  | INTEGER | Stored as `0` / `1`, boolean in the API |
 
-**One rematch (with an improved prompt):** adding one sentence — *"DELETE
-should return 204 with no body; PUT should return 400 if the body is empty or
-if `done` isn't a real boolean; also add GET / and GET /health returning
-JSON"* — fixed all four gaps above in a second generation. Same lesson,
-sharper this time: the AI's output is exactly as good as the spec you give
-it, and I could only catch what was missing because I'd already built the
-real thing by hand first.
+The table and seed rows are created automatically on first run, and the seed
+only runs when the table is empty — restarting never duplicates the seed
+data. The three-row seed insert is wrapped in a single **transaction**, so
+it's all-or-nothing: either all three rows are written, or none are.
 
+### Parameterized queries
+
+Every query involving user-supplied data (an `id`, a `title`, a `done`
+value) uses a `?` placeholder with the value passed separately — nothing is
+concatenated directly into the SQL string, which is what keeps user input
+from being able to break or manipulate the query.
+
+```javascript
+db.prepare("SELECT * FROM tasks WHERE id = ?").get(req.params.id);
+```
+
+### Proving persistence
+
+In Week 2, this exact test lost all new data on restart (see "The mortality
+experiment" below, kept for reference). In Week 3, the same test now passes:
+
+1. `POST /tasks` a couple of new tasks.
+2. Stop the server (`Ctrl+C`).
+3. Start it again (`npm start`).
+4. `GET /tasks` — the new tasks are still there.
+
+### Exploring the database by hand (Stage 4)
+
+Opened `tasks.db` directly in [DB Browser for SQLite](https://sqlitebrowser.org/)
+to confirm the API and the database file are two views onto the exact same
+data, with no syncing step between them.
+
+**Tasks table, viewed in DB Browser:**
+
+![Tasks table in DB Browser](./screenshots/tasks-table.png)
+
+**Example query run in the "Execute SQL" tab:**
+
+```sql
+SELECT COUNT(*) FROM tasks;
+```
+
+![COUNT query result](./screenshots/count-query.png)
+
+Returned `3`, confirming the seed only ran once and didn't multiply across
+restarts.
+
+After running queries directly in DB Browser (and clicking **Write
+Changes**), calling `GET /tasks` from the API immediately reflected the
+change — no server restart needed, since the API and DB Browser both read
+the same `tasks.db` file. There's no "syncing" between them; there's one
+source of truth.
+
+### The mortality experiment (Week 2 — historical)
+
+> Kept from the original A1 README for reference — this is the exact problem
+> Week 3's SQLite migration above was built to fix.
+
+Create a few tasks, restart the server (`Ctrl+C` then `npm start` again),
+then `GET /tasks`. In Week 2, the new tasks were gone — back to the 3 seed
+tasks — because everything lived in a JavaScript array in the server's
+memory; nothing was written to disk. As of Week 3, this no longer happens
+(see "Proving persistence" above).
+
+### Stage 6 — AI vs me (SQLite migration)
+
+*(Fill in after running the Week 3 AI rematch: your prompt asking an AI to
+migrate the in-memory CRUD API to SQLite, saved in `ai-version/`, and at
+least three concrete differences you found — e.g. seeding that multiplies,
+string-glued SQL, a changed status code, or an invented column type. See the
+assignment's Stage 6 for the exact three questions to answer.)*
+
+---
+
+## Project structure
+
+```
+.
+├── server.js         # Express routes (unchanged in behavior since Week 2)
+├── db.js             # SQLite connection, table creation, seeding (Week 3)
+├── openapi.json       # Swagger/OpenAPI spec
+├── tasks.db            # Created automatically on first run (git-ignored)
+└── screenshots/
+    ├── tasks-table.png
+    └── count-query.png
+```
