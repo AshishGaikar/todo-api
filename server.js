@@ -37,6 +37,22 @@ app.get("/tasks/:id", (req, res) => {
   res.status(200).json(serialize(task));
 });
 
+app.get("/public/info", (req, res) => {
+  res.status(200).json({ message: "Welcome stranger! This info is public." });
+});
+
+app.get("/protected/profile", (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Access token required" });
+  }
+
+  // Stage 3 will verify it — for now, just confirming one was presented.
+  res.status(200).json({ message: "token present, not yet verified" });
+});
+
 app.post("/tasks", (req, res) => {
   const { title } = req.body || {};
   if (!title || typeof title !== "string" || title.trim() === "") {
