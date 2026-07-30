@@ -1,0 +1,89 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Task API",
+    "version": "1.0.0",
+    "description": "A small in-memory CRUD API for managing a to-do list."
+  },
+  "servers": [{ "url": "http://localhost:3000" }],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API info",
+        "description": "Describes the API and lists its endpoints.",
+        "responses": { "200": { "description": "API description" } }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Confirms the server is running.",
+        "responses": { "200": { "description": "Server is healthy" } }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "summary": "List tasks",
+        "description": "Returns all tasks.",
+        "responses": { "200": { "description": "List of tasks" } }
+      },
+      "post": {
+        "summary": "Create a task",
+        "description": "Adds a new task with the given title. done defaults to false.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "title": { "type": "string" } }, "required": ["title"] },
+              "example": { "title": "Buy milk" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Task created" },
+          "400": { "description": "Missing or empty title" }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "summary": "Get a single task",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "The task" },
+          "404": { "description": "Task not found" }
+        }
+      },
+      "put": {
+        "summary": "Update a task",
+        "description": "Replaces title and/or done for the given task.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "title": { "type": "string" }, "done": { "type": "boolean" } }
+              },
+              "example": { "title": "Buy milk and eggs", "done": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated task" },
+          "400": { "description": "Invalid body" },
+          "404": { "description": "Task not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a task",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "204": { "description": "Deleted, no content" },
+          "404": { "description": "Task not found" }
+        }
+      }
+    }
+  }
+}
