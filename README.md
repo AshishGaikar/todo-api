@@ -252,6 +252,15 @@ checked, not just "a token exists."
 and pasting an access token lets you call protected routes directly from the
 browser via "Try it out," without needing curl.
 
+The full flow, run end-to-end from the browser — signup (`201`), login
+(`200`, returning the access token), logout (`204`), a public route
+(`200`), and both protected routes returning real user/dashboard data
+(`200`) once authorized:
+
+![Swagger UI full auth flow](./screenshots/swagger-full-flow.png)
+
+**Authorize dialog and authorized state:**
+
 ![Swagger Authorize dialog](./screenshots/swagger-authorize.png)
 
 ![Swagger authorized state](./screenshots/swagger-authorized.png)
@@ -278,6 +287,7 @@ browser via "Try it out," without needing curl.
     ├── tasks-table.png
     ├── count-query.png
     ├── supabase-users.png
+    ├── swagger-full-flow.png
     ├── swagger-authorize.png
     └── swagger-authorized.png
 ```
