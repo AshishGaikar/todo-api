@@ -121,16 +121,3 @@ task actually needs, and keep the request rate low enough that the target
 site never notices the difference between this scraper and a slow human
 visitor.
 
-## Known limitation
-
-<!-- Fill in one honest limitation once you've run this for real —
-     e.g. "the scraper doesn't yet handle pagination on availability
-     text formats other than 'In stock (N available)'" — whatever you
-     actually observe. -->
-
-## AI vs me
-
-<!-- Bonus stage: paste your own prompt (written from memory, not copied
-     from the assignment doc), note whether the AI's version collected
-     all 60, whether a rerun duplicated them, whether one bad page crashed
-     it — and at least three concrete differences from this version. -->
