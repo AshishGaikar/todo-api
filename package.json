@@ -1,0 +1,14 @@
+{
+  "name": "polite-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:with-fake-url": "node src/index.js --with-fake-url"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "zod": "^3.23.8"
+  }
+}
