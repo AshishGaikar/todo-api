@@ -1,17 +1,12 @@
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const openapiSpec = require("./openapi.json");
+const { pool, init } = require("./db");
+
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-let tasks = [
-  { id: 1, title: "Buy milk", done: false },
-  { id: 2, title: "Write README", done: false },
-  { id: 3, title: "Walk the dog", done: true },
-];
-let nextId = 4;
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -21,35 +16,47 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.status(200).json({ status: "ok", db: "ok" });
+  } catch (err) {
+    res.status(500).json({ status: "error", db: "unreachable" });
+  }
 });
 
-app.get("/tasks", (req, res) => {
-  res.status(200).json(tasks);
+app.get("/tasks", async (req, res) => {
+  const { rows } = await pool.query("SELECT * FROM tasks ORDER BY id");
+  res.status(200).json(rows);
 });
 
-app.get("/tasks/:id", (req, res) => {
-  const task = tasks.find((t) => t.id === parseInt(req.params.id));
+app.get("/tasks/:id", async (req, res) => {
+  const { rows } = await pool.query("SELECT * FROM tasks WHERE id = $1", [req.params.id]);
+  const task = rows[0];
   if (!task) {
     return res.status(404).json({ error: `Task ${req.params.id} not found` });
   }
   res.status(200).json(task);
 });
 
-app.post("/tasks", (req, res) => {
+app.post("/tasks", async (req, res) => {
   const { title } = req.body || {};
   if (!title || typeof title !== "string" || title.trim() === "") {
     return res.status(400).json({ error: "title is required and must be a non-empty string" });
   }
-  const newTask = { id: nextId++, title: title.trim(), done: false };
-  tasks.push(newTask);
-  res.status(201).json(newTask);
+
+  const { rows } = await pool.query(
+    "INSERT INTO tasks (title, done) VALUES ($1, $2) RETURNING *",
+    [title.trim(), false]
+  );
+
+  res.status(201).json(rows[0]);
 });
 
-app.put("/tasks/:id", (req, res) => {
-  const task = tasks.find((t) => t.id === parseInt(req.params.id));
-  if (!task) {
+app.put("/tasks/:id", async (req, res) => {
+  const { rows: existingRows } = await pool.query("SELECT * FROM tasks WHERE id = $1", [req.params.id]);
+  const existing = existingRows[0];
+  if (!existing) {
     return res.status(404).json({ error: `Task ${req.params.id} not found` });
   }
 
@@ -67,24 +74,35 @@ app.put("/tasks/:id", (req, res) => {
     return res.status(400).json({ error: "done must be a boolean" });
   }
 
-  if (titleProvided) task.title = title.trim();
-  if (doneProvided) task.done = done;
+  const newTitle = titleProvided ? title.trim() : existing.title;
+  const newDone = doneProvided ? done : existing.done;
 
-  res.status(200).json(task);
+  const { rows } = await pool.query(
+    "UPDATE tasks SET title = $1, done = $2 WHERE id = $3 RETURNING *",
+    [newTitle, newDone, req.params.id]
+  );
+
+  res.status(200).json(rows[0]);
 });
 
-app.delete("/tasks/:id", (req, res) => {
-  const index = tasks.findIndex((t) => t.id === parseInt(req.params.id));
-  if (index === -1) {
+app.delete("/tasks/:id", async (req, res) => {
+  const result = await pool.query("DELETE FROM tasks WHERE id = $1", [req.params.id]);
+  if (result.rowCount === 0) {
     return res.status(404).json({ error: `Task ${req.params.id} not found` });
   }
-  tasks.splice(index, 1);
   res.status(204).send();
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
-app.listen(PORT, () => {
-  console.log(`Listening on http://localhost:${PORT}`);
-  console.log(`Swagger docs at http://localhost:${PORT}/docs`);
-});
+init()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Listening on http://localhost:${PORT}`);
+      console.log(`Swagger docs at http://localhost:${PORT}/docs`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });
